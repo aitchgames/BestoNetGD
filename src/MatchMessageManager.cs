@@ -2,14 +2,15 @@ using System;
 using System.IO;
 using Steamworks;
 using Steamworks.Data;
-using UnityEngine;
+using BestoNet.Collections;
+using Godot;
 
 namespace IdolShowdown.Managers
 {
-    public class MatchMessageManager : MonoBehaviour
+    public partial class MatchMessageManager : Node
     {
-        [SerializeField] public int MAX_RETRY_AMOUNT = 3;
-        [SerializeField] public int MATCH_MESSAGE_CHANNEL = 4;
+        [Export] public int MAX_RETRY_AMOUNT = 3;
+        [Export] public int MATCH_MESSAGE_CHANNEL = 4;
         public int Ping { get; private set; } = 200;
         private const bool PACKET_ACK = true;
         public CircularArray<float> sentFrameTimes = new CircularArray<float>(60);
@@ -33,7 +34,7 @@ namespace IdolShowdown.Managers
                         }
                         catch (System.Exception e)
                         {
-                            UnityEngine.Debug.LogError(e);
+                            GD.PrintErr(e);
                         }
                     }
                 }
@@ -90,7 +91,9 @@ namespace IdolShowdown.Managers
 
         public void ProcessACK(int frame)
         {
-            int CalculatePing = (int)((Time.time - sentFrameTimes.Get(frame)) * 1000);
+            //do this weird conversion so that the code is as accurate (output wise) to the original
+            float time = (float)Time.GetTicksMsec() / 1000.0f;
+            int CalculatePing = (int)((time - sentFrameTimes.Get(frame)) * 1000);
             Ping = CalculatePing == 0 ? Ping : CalculatePing;
         }
 
@@ -106,7 +109,7 @@ namespace IdolShowdown.Managers
                 rollbackManager.SetClientInput(frame, input);
             }
             
-            sentFrameTimes.Insert(frame, Time.time);
+            sentFrameTimes.Insert(frame, (float)Time.GetTicksMsec() / 1000.0f);
             MemoryStream memoryStream = new MemoryStream();
             BinaryWriter binaryWriter = new BinaryWriter(memoryStream);
 

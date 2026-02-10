@@ -1,5 +1,6 @@
 using System;
-using UnityEngine;
+using Godot;
+using BestoNet.Collections;
 using static IdolShowdown.Managers.RollbackManager;
 
 public class FrameMetadataArray : CircularArray<FrameMetadata>
@@ -31,7 +32,7 @@ public class FrameMetadataArray : CircularArray<FrameMetadata>
             FrameMetadata data = Get(frame);
             return data.input;
         }
-        Debug.Log("Missing input for frame " + frame);
+        GD.Print("Missing input for frame " + frame);
         return 0;
     }
 
