@@ -9,16 +9,24 @@ namespace IdolShowdown.Managers
 {
     public partial class MatchMessageManager : Node
     {
-        [Export] public int MAX_RETRY_AMOUNT = 3;
-        [Export] public int MATCH_MESSAGE_CHANNEL = 4;
+        public static MatchMessageManager Instance { get; private set; }
+
+        //[Export] public int MAX_RETRY_AMOUNT = 3;
+        //[Export] public int MATCH_MESSAGE_CHANNEL = 4;
         public int Ping { get; private set; } = 200;
         private const bool PACKET_ACK = true;
         public CircularArray<float> sentFrameTimes = new CircularArray<float>(60);
 
         /* Global manager references */
-        private RollbackManager rollbackManager => GlobalManager.Instance.RollbackManager;
-        private LobbyManager lobbyManager => GlobalManager.Instance.LobbyManager;
+        private RollbackManager rollbackManager => RollbackManager.Instance;
+        //private LobbyManager lobbyManager => GlobalManager.Instance.LobbyManager;
 
+        public override void _Ready()
+        {
+            Instance = this;
+        }
+
+        /*
         void Update()
         {
             if (lobbyManager != null && lobbyManager.CurrentLobby != null && lobbyManager.LobbyMemberMe.userRank != PlayerLobbyType.spectator)
@@ -40,13 +48,18 @@ namespace IdolShowdown.Managers
                 }
             }
         }
+        */
 
-        private void OnChatMessage(ulong fromUser, byte[] message)
+        [Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = false, TransferChannel = 0, TransferMode = MultiplayerPeer.TransferModeEnum.Unreliable)]
+        private void OnChatMessage(byte[] message)
         {
+            /*
             if (GlobalManager.Instance.OnlineComponents.rematchHelper.IsActivated || !GlobalManager.Instance.MatchRunner.IsRunning)
             {
                 return;
             }
+            */
+            long fromUser = Multiplayer.GetRemoteSenderId();
 
             MemoryStream memoryStream = new MemoryStream(message);
             BinaryReader reader = new BinaryReader(memoryStream);
@@ -79,7 +92,7 @@ namespace IdolShowdown.Managers
             memoryStream.Close();
         }
 
-        public void ProcessInputs(int frame, ulong input, ulong fromUser)
+        public void ProcessInputs(int frame, ulong input, long fromUser)
         {
             if (rollbackManager.receivedInputs.ContainsKey(frame))
             {
@@ -97,12 +110,14 @@ namespace IdolShowdown.Managers
             Ping = CalculatePing == 0 ? Ping : CalculatePing;
         }
 
-        public void SendInputs(ulong userid, int frame, ulong input)
+        public void SendInputs(long userid, int frame, ulong input)
         {
+            /*
             if (GlobalManager.Instance.OnlineComponents.rematchHelper.IsActivated)
             {
                 return;
             }
+            */
 
             if (!rollbackManager.clientInputs.ContainsKey(frame))
             {
@@ -123,7 +138,8 @@ namespace IdolShowdown.Managers
             }
 
             byte[] data = memoryStream.ToArray();
-            SteamNetworking.SendP2PPacket(userid, data, data.Length, MATCH_MESSAGE_CHANNEL, P2PSend.UnreliableNoDelay);
+            //SteamNetworking.SendP2PPacket(userid, data, data.Length, MATCH_MESSAGE_CHANNEL, P2PSend.UnreliableNoDelay);
+            RpcId(userid, MethodName.OnChatMessage, data);
 
             binaryWriter?.Dispose();
             binaryWriter?.Close();
@@ -131,12 +147,14 @@ namespace IdolShowdown.Managers
             memoryStream?.Close();
         }
 
-        public void SendMessageACK(ulong userid, int frame)
+        public void SendMessageACK(long userid, int frame)
         {
+            /*
             if (GlobalManager.Instance.OnlineComponents.rematchHelper.IsActivated)
             {
                 return;
             }
+            */
 
             MemoryStream memoryStream = new MemoryStream();
             BinaryWriter binaryWriter = new BinaryWriter(memoryStream);
@@ -145,7 +163,8 @@ namespace IdolShowdown.Managers
             binaryWriter.Write(frame);
 
             byte[] data = memoryStream.ToArray();
-            SteamNetworking.SendP2PPacket(userid, data, data.Length, MATCH_MESSAGE_CHANNEL, P2PSend.UnreliableNoDelay);
+            //SteamNetworking.SendP2PPacket(userid, data, data.Length, MATCH_MESSAGE_CHANNEL, P2PSend.UnreliableNoDelay);
+            RpcId(userid, MethodName.OnChatMessage, data);
 
             binaryWriter?.Dispose();
             binaryWriter?.Close();
@@ -153,6 +172,5 @@ namespace IdolShowdown.Managers
             memoryStream?.Close();
                 
         }
-
     }
 }

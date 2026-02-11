@@ -8,6 +8,8 @@ namespace IdolShowdown.Managers
 {
     public partial class RollbackManager : Node
     {
+        public static RollbackManager Instance { get; private set; }
+
         public struct GameState {
             public int frame;
             public byte[] state;
@@ -19,7 +21,7 @@ namespace IdolShowdown.Managers
 
         private OnlineMatch onlineMatch;
         //private LobbyManager lobbyManager => GlobalManager.Instance.LobbyManager; //will not need as well just pass the peer ids manually
-        private MatchMessageManager matchManager => GlobalManager.Instance.MatchMessageManager;
+        private MatchMessageManager matchManager => MatchMessageManager.Instance;
         //private MatchRunner matchRunner => GlobalManager.Instance.MatchRunner;
         public DesyncDetector desyncDetector { get; private set; } = null; 
         [Export] public int LoadStateFrameDebug = 0;
@@ -48,7 +50,7 @@ namespace IdolShowdown.Managers
         public bool isRollbackFrame { get; private set; } = false;
         public bool physicsRollbackFrame { get; private set; } = false;
         private PlayerLobbyType clientType;
-        private ulong opponentPeerId;
+        private long opponentPeerId;
         public FrameMetadataArray receivedInputs { get; private set; } = new FrameMetadataArray(InputArraySize);
         public FrameMetadataArray opponentInputs { get; private set; } = new FrameMetadataArray(InputArraySize);
         public FrameMetadataArray clientInputs { get; private set; } = new FrameMetadataArray(InputArraySize);
@@ -69,7 +71,6 @@ namespace IdolShowdown.Managers
         //private OnStageObjects onStageObjects => GlobalManager.Instance.OnStageObjects;
         private IRollbackMatch matchState;
 
-        /*
         public override void _Ready()
         {
             /* //Do not particularly care about discord just wanna get this stuff to work
@@ -77,10 +78,11 @@ namespace IdolShowdown.Managers
 #if UNITY_EDITOR
             ISLog.Message("Webhook Decoded to " + DiscordWebhookManager.ReadBytes(discordHook));
 #endif
-            *//*
             InitDesyncDetector();
+            */
+
+            Instance = this;
         }
-        */
 
         public void InitPlaying(PlayerLobbyType clientType, ulong opponentPeerId, IRollbackMatch matchState)
         {
@@ -517,7 +519,7 @@ namespace IdolShowdown.Managers
             GD.Print("Disconnecting OnlineMatch connection");
             ClearVars();
             ((OnlineMatch)GlobalManager.Instance.MatchRunner.CurrentMatch).ResetMatchVars();  
-            GlobalManager.Instance.RollbackManager.SetRollbackStatus(false);
+            SetRollbackStatus(false);
         }
 
         private void DebugLoadState()
