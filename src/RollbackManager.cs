@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using IdolShowdown.Match;
-using IdolShowdown.Networking;
 using BestoNet.Collections;
 using Godot;
 
@@ -21,7 +20,7 @@ namespace IdolShowdown.Managers
         private OnlineMatch onlineMatch;
         //private LobbyManager lobbyManager => GlobalManager.Instance.LobbyManager; //will not need as well just pass the peer ids manually
         private MatchMessageManager matchManager => GlobalManager.Instance.MatchMessageManager;
-        private MatchRunner matchRunner => GlobalManager.Instance.MatchRunner;
+        //private MatchRunner matchRunner => GlobalManager.Instance.MatchRunner;
         public DesyncDetector desyncDetector { get; private set; } = null; 
         [Export] public int LoadStateFrameDebug = 0;
         [ExportGroup("Mode Management")]
@@ -65,9 +64,10 @@ namespace IdolShowdown.Managers
         public int remoteFrameAdvantage {get; private set;} = 0;
         private int lastDroppedFrame  = -1;
         private int consecutiveDrop = 0;
-        public int localFrame => matchRunner.FrameNumber;
+        public int localFrame => matchState.FrameNumber;
 
-        private OnStageObjects onStageObjects => GlobalManager.Instance.OnStageObjects;
+        //private OnStageObjects onStageObjects => GlobalManager.Instance.OnStageObjects;
+        private IRollbackMatch matchState;
 
         /*
         public override void _Ready()
@@ -82,12 +82,12 @@ namespace IdolShowdown.Managers
         }
         */
 
-        //Opponent Peer Id doesnt matter if youre a spectator
-        public void Init(PlayerLobbyType clientType, ulong opponentPeerId)
+        public void InitPlaying(PlayerLobbyType clientType, ulong opponentPeerId, IRollbackMatch matchState)
         {
             GD.Print("Initializing OnlineMatch connection");
             this.clientType = clientType;
             this.opponentPeerId = opponentPeerId;
+            this.matchState = matchState;
 
             /*
             if (AutosetDelay)
@@ -98,7 +98,7 @@ namespace IdolShowdown.Managers
 
             ClearVars();
 
-            onlineMatch = GlobalManager.Instance.MatchRunner.CurrentMatch as OnlineMatch;
+            //onlineMatch = GlobalManager.Instance.MatchRunner.CurrentMatch as OnlineMatch;
         }
 
         public void ClearVars()
@@ -156,7 +156,7 @@ namespace IdolShowdown.Managers
 
         public void RollbackEvent()
         {   
-            if(DelayBased || GlobalManager.Instance.GameStateManager.MatchEnded)
+            if(DelayBased || matchState.MatchEnded)
             {
                 return;
             }
@@ -199,9 +199,10 @@ namespace IdolShowdown.Managers
                 {
                     SetRollbackStatus(true); // Some shit in IdolMatch was resetting this value, so lets put it back to true every rollback frame to make sure things are running in the correct context
                     // Love, Iota
-                    ((OnlineMatch)GlobalManager.Instance.MatchRunner.CurrentMatch).TimeUpdate();
-                    ulong [] inputs = SynchronizeInput();
-                    GlobalManager.Instance.MatchRunner.CurrentMatch.UpdateByFrame(inputs);
+                    //((OnlineMatch)GlobalManager.Instance.MatchRunner.CurrentMatch).TimeUpdate();
+                    //ulong [] inputs = SynchronizeInput(); //im gonna make it so that the user has to call the sync inputs
+                    //GlobalManager.Instance.MatchRunner.CurrentMatch.UpdateByFrame(inputs);
+                    matchState.GameUpdate(true);
                     /* Speculative saving */ 
                     if (i == remoteFrame || syncFrame + Mathf.Floor(RollbackFrames / 2) == i)
                     {
@@ -224,19 +225,19 @@ namespace IdolShowdown.Managers
             {
                 return false;
             }
-            matchManager.SendInputs(opponentPeerId, matchRunner.FrameNumber + InputDelay, input);
+            matchManager.SendInputs(opponentPeerId, localFrame + InputDelay, input);
             return true;
         }
 
         public bool AllowUpdate()
         {
             /* Check if we have input for the next frame */
-            int frame = matchRunner.FrameNumber;
+            int frame = localFrame;
             if (consecutiveDrop > TimeoutFrameLimit)
             {
                 TriggerMatchTimeout();
             }
-            if (localFrame - syncFrame > MaxRollBackFrames && localFrame > remoteFrame && !isRollbackFrame && !GlobalManager.Instance.GameStateManager.MatchEnded)
+            if (localFrame - syncFrame > MaxRollBackFrames && localFrame > remoteFrame && !isRollbackFrame && !matchState.MatchEnded)
             {
                 #if TOOLS
                 GD.Print(string.Format("Local frame {2}, localFrameAdvantage {0}:{1}, Dropping frame", localFrame - syncFrame, MaxRollBackFrames, localFrame));
@@ -257,7 +258,7 @@ namespace IdolShowdown.Managers
         }
         public ulong[] SynchronizeInput()
         {
-            int frame = matchRunner.FrameNumber;
+            int frame = localFrame;
             
             ulong opponentInput = PredictOpponentInput(frame, out bool found);
             if (clientType == PlayerLobbyType.playerOne)
@@ -295,7 +296,7 @@ namespace IdolShowdown.Managers
             states[localFrame % StateArraySize] = new GameState()
             {
                 frame = localFrame,
-                state = onStageObjects.ToBytes()
+                state = matchState.ToBytes()
             };
         }
 
@@ -314,9 +315,9 @@ namespace IdolShowdown.Managers
                 #endif
                 return;
             }
-            GlobalManager.Instance.OnStageObjects.FromBytes(states[frame % StateArraySize].state);
-            GlobalManager.Instance.MatchRunner.CurrentMatch.ForceSetFrame(frame);
-            GlobalManager.Instance.MatchRunner.CurrentMatch.UpdatePhysics(true);
+            matchState.FromBytes(states[frame % StateArraySize].state);
+            matchState.FrameNumber = frame;
+            matchState.GameUpdate(true);
         }
 
         public void ExtendFrame()
@@ -467,7 +468,7 @@ namespace IdolShowdown.Managers
         {
             Disconnect();
             //GlobalManager.Instance.LobbyManager.UpdateLastPlayerInfo();
-            ((OnlineMatch)matchRunner.CurrentMatch).SaveDemoDesync();
+            //((OnlineMatch)matchRunner.CurrentMatch).SaveDemoDesync();
             TerminateMatch(Localization.Localization.GetLocalized("DISCONNECT_REASON_DESYNC"));
         }
 
