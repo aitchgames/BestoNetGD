@@ -118,10 +118,12 @@ namespace IdolShowdown.Managers
             totalConsecutiveFrameExtensions = FrameExtensionWindow;
             matchManager.sentFrameTimes.Clear();
 
+            /*
             if (FPSLock.Instance.EnableRateLock)
             {
                 FPSLock.Instance.SetFrameExtension(0);
             }
+            */
 
             for (int i = 0; i < StateArraySize; i++)
             {
@@ -322,34 +324,40 @@ namespace IdolShowdown.Managers
 
         public void ExtendFrame()
         {
+            /*
             if (FPSLock.Instance.EnableRateLock == false)
             {
                 return;
             }
+            */
 
             if (totalConsecutiveFrameExtensions < FrameExtensionWindow)
             {
                 totalConsecutiveFrameExtensions++;
             }
+            /*
             else
             {
                 FPSLock.Instance.SetFrameExtension(0);
             }
+            */
         }
 
         public void StartFrameExtensions(float frameAdvantageDifference)
         {
+            /*
             if (FPSLock.Instance.EnableRateLock == false)
             {
                 return;
             }
+            */
 
             if (totalConsecutiveFrameExtensions == FrameExtensionWindow)
             {
                 #if TOOLS
                 GD.Print(string.Format("Local frame {1}, Frame Advantage {0}", frameAdvantageDifference, localFrame));
                 #endif
-                FPSLock.Instance.SetFrameExtension(SleepTimeMicro);
+                //FPSLock.Instance.SetFrameExtension(SleepTimeMicro);
                 totalConsecutiveFrameExtensions = 0;
             }
         }
