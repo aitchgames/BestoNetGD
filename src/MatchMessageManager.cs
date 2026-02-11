@@ -1,7 +1,5 @@
 using System;
 using System.IO;
-using Steamworks;
-using Steamworks.Data;
 using BestoNet.Collections;
 using Godot;
 
