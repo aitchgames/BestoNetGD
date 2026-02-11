@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using IdolShowdown.Match;
 using IdolShowdown.Networking;
-using IdolShowdown.Platforms;
 using BestoNet.Collections;
 using Godot;
 
@@ -20,13 +19,13 @@ namespace IdolShowdown.Managers
         }
 
         private OnlineMatch onlineMatch;
-        private LobbyManager lobbyManager => GlobalManager.Instance.LobbyManager;
+        //private LobbyManager lobbyManager => GlobalManager.Instance.LobbyManager; //will not need as well just pass the peer ids manually
         private MatchMessageManager matchManager => GlobalManager.Instance.MatchMessageManager;
         private MatchRunner matchRunner => GlobalManager.Instance.MatchRunner;
         public DesyncDetector desyncDetector { get; private set; } = null; 
         [Export] public int LoadStateFrameDebug = 0;
         [ExportGroup("Mode Management")]
-        [Export] public bool AutosetDelay = false;
+        //[Export] public bool AutosetDelay = false;
         [Export] public int InputDelay = 0;
         [Export] public bool DelayBased = false;
         [ExportGroup("Frame Dropping Management")]
@@ -49,8 +48,8 @@ namespace IdolShowdown.Managers
         public int RollbackFramesUI { get; private set; } = 0;
         public bool isRollbackFrame { get; private set; } = false;
         public bool physicsRollbackFrame { get; private set; } = false;
-        private PlatformUser client;
-        private PlatformUser opponent;
+        private PlayerLobbyType clientType;
+        private ulong opponentPeerId;
         public FrameMetadataArray receivedInputs { get; private set; } = new FrameMetadataArray(InputArraySize);
         public FrameMetadataArray opponentInputs { get; private set; } = new FrameMetadataArray(InputArraySize);
         public FrameMetadataArray clientInputs { get; private set; } = new FrameMetadataArray(InputArraySize);
@@ -70,27 +69,32 @@ namespace IdolShowdown.Managers
 
         private OnStageObjects onStageObjects => GlobalManager.Instance.OnStageObjects;
 
-        public void Start()
+        /*
+        public override void _Ready()
         {
             /* //Do not particularly care about discord just wanna get this stuff to work
             DiscordWebhookManager.helper = discordHook; // Obfuscate the webhook URL
 #if UNITY_EDITOR
             ISLog.Message("Webhook Decoded to " + DiscordWebhookManager.ReadBytes(discordHook));
 #endif
-            */
+            *//*
             InitDesyncDetector();
         }
+        */
 
-        public void Init()
+        //Opponent Peer Id doesnt matter if youre a spectator
+        public void Init(PlayerLobbyType clientType, ulong opponentPeerId)
         {
             GD.Print("Initializing OnlineMatch connection");
-            client = lobbyManager.LobbyMemberMe.userID == lobbyManager.getP1().userID ? lobbyManager.getP1() : lobbyManager.getP2();
-            opponent = lobbyManager.LobbyMemberMe.userID == lobbyManager.getP1().userID ? lobbyManager.getP2() : lobbyManager.getP1();
+            this.clientType = clientType;
+            this.opponentPeerId = opponentPeerId;
 
+            /*
             if (AutosetDelay)
             {
                 InputDelay = GlobalManager.Instance.OnlineComponents.matchInfo.LobbyHelper.GetInputDelay();
             }
+            */
 
             ClearVars();
 
@@ -216,11 +220,11 @@ namespace IdolShowdown.Managers
 
         public bool SendLocalInput(ulong input) 
         {
-            if (opponent == null || isRollbackFrame)
+            if (opponentPeerId == 0 || isRollbackFrame)
             {
                 return false;
             }
-            matchManager.SendInputs(opponent.userID, matchRunner.FrameNumber + InputDelay, input);
+            matchManager.SendInputs(opponentPeerId, matchRunner.FrameNumber + InputDelay, input);
             return true;
         }
 
@@ -256,7 +260,7 @@ namespace IdolShowdown.Managers
             int frame = matchRunner.FrameNumber;
             
             ulong opponentInput = PredictOpponentInput(frame, out bool found);
-            if (client.userRank == PlayerLobbyType.playerOne)
+            if (clientType == PlayerLobbyType.playerOne)
             {
                 return new ulong[2] {clientInputs.GetInput(frame), opponentInput};
             }
@@ -446,7 +450,7 @@ namespace IdolShowdown.Managers
         }
         public void DesyncCheck()
         {
-            if (GlobalManager.Instance.LobbyManager.LobbyMemberMe.userRank != PlayerLobbyType.spectator)
+            if (clientType != PlayerLobbyType.spectator)
                 desyncDetector.GetFrameSendToOpponent();
         }
 
@@ -462,7 +466,7 @@ namespace IdolShowdown.Managers
         public void TriggerDesyncedStatus()
         {
             Disconnect();
-            GlobalManager.Instance.LobbyManager.UpdateLastPlayerInfo();
+            //GlobalManager.Instance.LobbyManager.UpdateLastPlayerInfo();
             ((OnlineMatch)matchRunner.CurrentMatch).SaveDemoDesync();
             TerminateMatch(Localization.Localization.GetLocalized("DISCONNECT_REASON_DESYNC"));
         }
@@ -471,12 +475,13 @@ namespace IdolShowdown.Managers
         {
             Disconnect();
             
-            GlobalManager.Instance.LobbyManager.UpdateLastPlayerInfo();
+            //GlobalManager.Instance.LobbyManager.UpdateLastPlayerInfo();
             TerminateMatch(Localization.Localization.GetLocalized("DISCONNECT_REASON_TIMEOUT"));
         }
 
         void TerminateMatch(string reason)
         {
+            /*
             // If we are still connected to the lobby and it has same people then
             if (GlobalManager.Instance.LobbyManager.CurrentLobby != null)
             {
@@ -490,6 +495,7 @@ namespace IdolShowdown.Managers
                 // Go to lobby screen
                 GlobalManager.Instance.SceneManager.SwitchSceneToAsyncWithFade("LobbyScreen");
             }
+            */
 
             GlobalManager.Instance.GameStateManager.MatchStop(); // Stop the match
             GlobalManager.Instance.UIManager.WaitingForOpponentUIRemove(); // Remove splashes

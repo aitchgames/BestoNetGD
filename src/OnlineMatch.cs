@@ -1,4 +1,4 @@
-﻿/*
+/*
 *  Author: Iota
 *  Class Description: Match logic during Online
 */
@@ -9,8 +9,6 @@ using IdolShowdown.Networking;
 
 namespace IdolShowdown.Match
 {
-    using static ISConstants;
-
     public class OnlineMatch : IdolMatch
     {
         bool started;
@@ -139,7 +137,7 @@ namespace IdolShowdown.Match
                 else
                 {
                     timeoutFrames++;
-                    if (timeoutFrames > rollbackManager.TimeoutFrames)
+                    if (timeoutFrames > rollbackManager.TimeoutFrameLimit)
                     {
                         rollbackManager.TriggerMatchTimeout();
                     }
