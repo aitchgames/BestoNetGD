@@ -5,6 +5,7 @@ using Godot;
 
 namespace IdolShowdown.Managers
 {
+    [GlobalClass]
     public partial class RollbackManager : Node
     {
         public static RollbackManager Instance { get; private set; }
