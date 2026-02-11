@@ -23,7 +23,7 @@ namespace IdolShowdown.Managers
         //private LobbyManager lobbyManager => GlobalManager.Instance.LobbyManager; //will not need as well just pass the peer ids manually
         private MatchMessageManager matchManager => MatchMessageManager.Instance;
         //private MatchRunner matchRunner => GlobalManager.Instance.MatchRunner;
-        public DesyncDetector desyncDetector { get; private set; } = null; 
+        //public DesyncDetector desyncDetector { get; private set; } = null; 
         [Export] public int LoadStateFrameDebug = 0;
         [ExportGroup("Mode Management")]
         //[Export] public bool AutosetDelay = false;
@@ -71,6 +71,11 @@ namespace IdolShowdown.Managers
         //private OnStageObjects onStageObjects => GlobalManager.Instance.OnStageObjects;
         private IRollbackMatch matchState;
 
+        [Signal]
+        public delegate void TerminateMatchEventHandler(string reason);
+        public const string DISCONNECT_REASON_TIMEOUT = "DISCONNECT_REASON_TIMEOUT";
+        public const string DISCONNECT_REASON_DESYNC = "DISCONNECT_REASON_DESYNC";
+
         public override void _Ready()
         {
             /* //Do not particularly care about discord just wanna get this stuff to work
@@ -84,7 +89,12 @@ namespace IdolShowdown.Managers
             Instance = this;
         }
 
-        public void InitPlaying(PlayerLobbyType clientType, ulong opponentPeerId, IRollbackMatch matchState)
+        public override void _ExitTree()
+        {
+            Instance = null;
+        }
+
+        public void InitPlaying(PlayerLobbyType clientType, long opponentPeerId, IRollbackMatch matchState)
         {
             GD.Print("Initializing OnlineMatch connection");
             this.clientType = clientType;
@@ -459,6 +469,7 @@ namespace IdolShowdown.Managers
         {
             RollbackFramesUI = 0;
         }
+        /*
         public void DesyncCheck()
         {
             if (clientType != PlayerLobbyType.spectator)
@@ -473,26 +484,27 @@ namespace IdolShowdown.Managers
                 desyncDetector.Initialize();
             }
         }
+        */
 
         public void TriggerDesyncedStatus()
         {
             Disconnect();
             //GlobalManager.Instance.LobbyManager.UpdateLastPlayerInfo();
             //((OnlineMatch)matchRunner.CurrentMatch).SaveDemoDesync();
-            TerminateMatch(Localization.Localization.GetLocalized("DISCONNECT_REASON_DESYNC"));
+            EmitSignalTerminateMatch(DISCONNECT_REASON_DESYNC);
         }
 
         public void TriggerMatchTimeout()
         {
             Disconnect();
-            
+
             //GlobalManager.Instance.LobbyManager.UpdateLastPlayerInfo();
-            TerminateMatch(Localization.Localization.GetLocalized("DISCONNECT_REASON_TIMEOUT"));
+            EmitSignalTerminateMatch(DISCONNECT_REASON_TIMEOUT);
         }
 
+        /*
         void TerminateMatch(string reason)
         {
-            /*
             // If we are still connected to the lobby and it has same people then
             if (GlobalManager.Instance.LobbyManager.CurrentLobby != null)
             {
@@ -506,19 +518,19 @@ namespace IdolShowdown.Managers
                 // Go to lobby screen
                 GlobalManager.Instance.SceneManager.SwitchSceneToAsyncWithFade("LobbyScreen");
             }
-            */
 
             GlobalManager.Instance.GameStateManager.MatchStop(); // Stop the match
             GlobalManager.Instance.UIManager.WaitingForOpponentUIRemove(); // Remove splashes
             GD.Print(reason);
             GlobalManager.Instance.UIManager.MatchTerminationNotificationSummon(reason);
         }
+        */
 
         public void Disconnect()
         {
             GD.Print("Disconnecting OnlineMatch connection");
             ClearVars();
-            ((OnlineMatch)GlobalManager.Instance.MatchRunner.CurrentMatch).ResetMatchVars();  
+            //((OnlineMatch)GlobalManager.Instance.MatchRunner.CurrentMatch).ResetMatchVars();  
             SetRollbackStatus(false);
         }
 

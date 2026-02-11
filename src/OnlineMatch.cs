@@ -3,6 +3,7 @@
 *  Class Description: Match logic during Online
 */
 
+#if false
 using IdolShowdown.Managers;
 using IdolShowdown.Platforms;
 using IdolShowdown.Networking;
@@ -219,3 +220,4 @@ namespace IdolShowdown.Match
         }
     }
 }
+#endif

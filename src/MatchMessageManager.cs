@@ -24,6 +24,11 @@ namespace IdolShowdown.Managers
             Instance = this;
         }
 
+        public override void _ExitTree()
+        {
+            Instance = null;
+        }
+
         /*
         void Update()
         {
