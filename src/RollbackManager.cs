@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using IdolShowdown.Match;
 using BestoNet.Collections;
 using Godot;
 
@@ -19,7 +18,7 @@ namespace IdolShowdown.Managers
             public ulong input;
         }
 
-        private OnlineMatch onlineMatch;
+        //private OnlineMatch onlineMatch;
         //private LobbyManager lobbyManager => GlobalManager.Instance.LobbyManager; //will not need as well just pass the peer ids manually
         private MatchMessageManager matchManager => MatchMessageManager.Instance;
         //private MatchRunner matchRunner => GlobalManager.Instance.MatchRunner;
