@@ -5,6 +5,7 @@ using Godot;
 
 namespace IdolShowdown.Managers
 {
+    [GlobalClass]
     public partial class MatchMessageManager : Node
     {
         public static MatchMessageManager Instance { get; private set; }
